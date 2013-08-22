@@ -2,6 +2,7 @@
 --Analizador Lexico
 --Autores: José Antonnio Vélez Gómez
 --	   Carlos Ramirez
+--	   Keyla Figueroa
 import System.IO
 import System.Random 
 import System.IO.Unsafe
@@ -13,6 +14,7 @@ main = do
 		putStrLn "\t\t\t     ANALIZADOR LEXICO"
 		putStrLn "\t\t\t  José Antonio Vélez Gómez"
 		putStrLn "\t\t\t       Carlos Ramirez"
+		putStrLn "\t\t\t       Keyla Figueroa"
 		putStrLn "\t\t\t*****************************"
 	
 		putStrLn "\n\t\t\t\tArchivo Codec.c Abierto"
