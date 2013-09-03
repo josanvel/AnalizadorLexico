@@ -77,6 +77,7 @@ menuPrincipal manejable = do
 					putStrLn $ "Lista2:        "++show(listLine2)
 					let pal = splitOn " " palReser
 					let listaTupla = leerTuplas pal []
+					identificadorPalabras listaTupla listLine2 listaTupla
 					menuPrincipal manejable 
 					
 --Borra elementos vacios de la lista de cada linea leida del archivo
@@ -125,3 +126,25 @@ separaCaracter listL listD l = if(length (tail listL)== 0) == False
 							else [head listL] ++ (separaCaracter (tail listL) listD l) 
 				 	else 
 				 		(buscarCaracter (head listL) listD l) 			 	 
+
+
+--Identifica las diferentes Palabras Reservadas y los diferentes Operadores
+identificadorPalabras :: [[String]]->[String]->[[String]]->IO()
+identificadorPalabras (list1:listTail) list2 (listAux:listTailAux) = do
+												if (length (tail list2) == 0)
+													then if( length(listTail) == 0 )
+															then if(elem (head list2) list1)
+																	then putStrLn $ show(tail list1)++" "++show(head list1)
+																	else putStrLn $ "Identificador: "++show(head list2)
+															else if (elem (head list2) list1)
+																	then putStrLn $ show(tail list1)++" "++show(head list2)
+																	else identificadorPalabras listTail list2 (listAux:listTailAux)  --return ()
+													else if( length(listTail) == 0 )
+															then if(elem (head list2) list1)
+																	then do putStrLn $ show(tail list1)++" "++show(head list1)
+																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux)
+																	else identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux) --putStrLn $ "Identificador: "++show(head list2)
+															else if (elem (head list2) list1)
+																	then do putStrLn $ show(tail list1)++" "++show(head list2)
+																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux)
+																	else identificadorPalabras listTail list2 (listAux:listTailAux) --return ()n
