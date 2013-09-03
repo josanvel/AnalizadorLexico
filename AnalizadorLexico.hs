@@ -71,9 +71,34 @@ menuPrincipal manejable = do
 
 					handleDelimitadores <- openFile "delim.c" ReadMode
 					delimitadores <- hGetLine handleDelimitadores
-
+					let	listaDelimitadores = splitOn " " delimitadores
+					let listLine = separaCaracter listaLinea listaDelimitadores []
+					let listLine2 = borrarEspacios listLine []
+					putStrLn $ "Lista2:        "++show(listLine2)
+					let pal = splitOn " " palReser
+					let listaTupla = leerTuplas pal []
 					menuPrincipal manejable 
-
+					
+--Borra elementos vacios de la lista de cada linea leida del archivo
+borrarEspacios :: [String] -> [String] -> [String]
+borrarEspacios [] [] = []
+borrarEspacios lista listaNueva = do 
+					if (length (tail lista)== 0)
+						then if (length(head lista) > 0)
+							then listaNueva ++ [head lista]
+							else listaNueva
+						else if (length(head lista) > 0)
+							then borrarEspacios (tail lista) (listaNueva ++ [head lista])
+							else borrarEspacios (tail lista) listaNueva
+							
+--Recibe una lista de String de las palabras reservadas del archivo
+--y devuelve la lista con sus lexemas y tokens separados
+leerTuplas :: [String] -> [[String]] -> [[String]]
+leerTuplas [] [[]]= [[]]
+leerTuplas list listResult = do
+					if (length (tail list)== 0)
+						then listResult ++ [splitOn "jk" (head list) ]
+						else leerTuplas (tail list) (listResult ++ [splitOn "jk" (head list)])
 
 -- Recibe un String y una lista de delimitadores verifica si en ese String hay caracteres especiales 
 -- y devuelve una lista de String con los delimitadores separados 
