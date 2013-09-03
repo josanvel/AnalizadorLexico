@@ -10,6 +10,7 @@ import Data.List
 import System.IO
 import Data.List.Split
 
+--Elimina los comentarios
 comments :: String -> String
 comments  string = do 	
 					let 	finalPoint = (index1 "/*" string)
@@ -17,7 +18,7 @@ comments  string = do
 					if((isSubstring "/*" string) && (isSubstring "*/" string)) == False 
 						then string
 						else comments[string !! x | x<-[0..finalPoint - 1]++[initialPoint..(length string) - 1]]
-
+--Elimina las cabecera
 cabecera :: String -> String
 cabecera  string = do 	
 					let 	finalPoint = (index1 "#" string)
@@ -68,26 +69,28 @@ main = do
 		putStrLn "\t\t\t*****************************"
 	
 		putStrLn "\n\t\t\t\tArchivo Codec.c Abierto"
-		sinComentarios "code.c"
+		eliminaComentariosCabeceras "code.c"
 		codigo <- readFile "codeComentario.c"
 
 		menuPrincipal (words codigo)
 		--hClose codigo
 
---Funcion que lee Linea a Linea y se ejecuta todas las funciones
+--Funcion Principal
 menuPrincipal [] = return()
 menuPrincipal manejable = do
-					funcion manejable
-		
---sinComentarios:: String -> String 
-sinComentarios arch = do
+					analizador manejable
+
+--Funcion que lee el archivo y elimina los comentarios de lineas
+--y los comentarios multilineas y las cabeceras		
+eliminaComentariosCabeceras arch = do
 						codigo <- readFile arch
 						let rComments = comments (codigo)
 						let rCabecera = cabecera (rComments)
 						writeFile "codeComentario.c" rCabecera
 
-funcion:: [String] -> IO()
-funcion (x:xs) = do
+--Funcion que toma las palabras reservadas y separa los tokens y lexemas del archivo
+analizador:: [String] -> IO()
+analizador (x:xs) = do
 					listaPalabras <- openFile "palabraReservadas.c" ReadMode
 					palReser <- hGetLine listaPalabras
 					let listaSplitArchivo = split (oneOf "(,;<>{[+-?=!#:\\\"%&*)}]") x
@@ -97,7 +100,7 @@ funcion (x:xs) = do
 					identificadorPalabras listaTupla listaN1 listaTupla
 					if (length(xs)==0)
 						then return()
-						else funcion xs
+						else analizador xs
 
 
 --Borra elementos vacios de la lista de cada linea leida del archivo
@@ -127,18 +130,24 @@ identificadorPalabras (list1:listTail) list2 (listAux:listTailAux) = do
 												if (length (tail list2) == 0)
 													then if( length(listTail) == 0 )
 															then if(elem (head list2) list1)
-																	then putStrLn $ show(tail list1)++" "++show(head list1)
-																	else putStrLn $ "Identificador: "++show(head list2)
+																	then do appendFile "analizador.txt" (show(tail list1)++"  =>  "++show(head list1)++ "\n")
+																		putStrLn $ show(tail list1)++" "++show(head list1)
+																	else do appendFile "analizador.txt" ("Identificador   =>   "++show(head list2)++ "\n")
+																		putStrLn $ "Identificador: "++show(head list2)
 															else if (elem (head list2) list1)
-																	then putStrLn $ show(tail list1)++" "++show(head list2)
+																	then do appendFile "analizador.txt" (show(tail list1)++"  =>  "++show(head list2)++ "\n")
+																		putStrLn $ show(tail list1)++" "++show(head list2)
 																	else identificadorPalabras listTail list2 (listAux:listTailAux) 
 													else if( length(listTail) == 0 )
 															then if(elem (head list2) list1)
-																	then do putStrLn $ show(tail list1)++" "++show(head list1)
+																	then do appendFile "analizador.txt" (show(tail list1)++"  =>  "++show(head list1)++ "\n")
+																		putStrLn $ show(tail list1)++" "++show(head list1)
 																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux)
-																	else do putStrLn $ "Identificador: "++show(head list2)
+																	else do appendFile "analizador.txt" ("Identificador   =>   "++show(head list2)++ "\n") 
+																		putStrLn $ "Identificador: "++show(head list2)
 																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux) 
 															else if (elem (head list2) list1)
-																	then do putStrLn $ show(tail list1)++" "++show(head list2)
+																	then do appendFile "analizador.txt" (show(tail list1)++"  =>  "++show(head list2)++ "\n") 
+																		putStrLn $ show(tail list1)++" "++show(head list2)
 																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux)
 																	else identificadorPalabras listTail list2 (listAux:listTailAux) 
