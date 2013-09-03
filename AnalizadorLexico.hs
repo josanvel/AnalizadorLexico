@@ -5,9 +5,26 @@
 --	   Keyla Figueroa
 
 import Data.Char
+import Data.Char(toUpper)
 import Data.List
 import System.IO
 import Data.List.Split
+
+comments :: String -> String
+comments  string = do 	
+					let 	finalPoint = (index1 "/*" string)
+					let 	initialPoint = (index1 "*/" string) + 2	
+					if((isSubstring "/*" string) && (isSubstring "*/" string)) == False 
+						then string
+						else comments[string !! x | x<-[0..finalPoint - 1]++[initialPoint..(length string) - 1]]
+
+cabecera :: String -> String
+cabecera  string = do 	
+					let 	finalPoint = (index1 "#" string)
+					let 	initialPoint = (index1 ">" string) + 2	
+					if((isSubstring "#" string) && (isSubstring ">" string)) == False 
+						then string
+						else cabecera[string !! x | x<-[0..finalPoint - 1]++[initialPoint..(length string) - 1]]
 
 index1 :: String -> String -> Int
 index1 substring string
@@ -51,35 +68,38 @@ main = do
 		putStrLn "\t\t\t*****************************"
 	
 		putStrLn "\n\t\t\t\tArchivo Codec.c Abierto"
-		codigo <- openFile "code.c" ReadMode
-		menuPrincipal codigo
-		hClose codigo
+		sinComentarios "code.c"
+		codigo <- readFile "codeComentario.c"
+
+		menuPrincipal (words codigo)
+		--hClose codigo
 
 --Funcion que lee Linea a Linea y se ejecuta todas las funciones
+menuPrincipal [] = return()
 menuPrincipal manejable = do
-			ineof <- hIsEOF manejable
-			if ineof
-				then return ()
-				else do
-					inpStr <- hGetLine manejable
-					lista <- openFile "caracter.c" ReadMode
-					caracter <- hGetContents lista
-					let	palabra = tokensCaracter caracter inpStr
-						listaLinea = splitOn " " palabra
+					funcion manejable
+		
+--sinComentarios:: String -> String 
+sinComentarios arch = do
+						codigo <- readFile arch
+						let rComments = comments (codigo)
+						let rCabecera = cabecera (rComments)
+						writeFile "codeComentario.c" rCabecera
+
+funcion:: [String] -> IO()
+funcion (x:xs) = do
 					listaPalabras <- openFile "palabraReservadas.c" ReadMode
 					palReser <- hGetLine listaPalabras
-
-					handleDelimitadores <- openFile "delim.c" ReadMode
-					delimitadores <- hGetLine handleDelimitadores
-					let	listaDelimitadores = splitOn " " delimitadores
-					let listLine = separaCaracter listaLinea listaDelimitadores []
-					let listLine2 = borrarEspacios listLine []
-					putStrLn $ "Lista2:        "++show(listLine2)
+					let listaSplitArchivo = split (oneOf "(,;<>{[+-?=!#:\\\"%&*)}]") x
+					let listaN1 =borrarEspacios listaSplitArchivo []
 					let pal = splitOn " " palReser
 					let listaTupla = leerTuplas pal []
-					identificadorPalabras listaTupla listLine2 listaTupla
-					menuPrincipal manejable 
-					
+					identificadorPalabras listaTupla listaN1 listaTupla
+					if (length(xs)==0)
+						then return()
+						else funcion xs
+
+
 --Borra elementos vacios de la lista de cada linea leida del archivo
 borrarEspacios :: [String] -> [String] -> [String]
 borrarEspacios [] [] = []
@@ -101,33 +121,6 @@ leerTuplas list listResult = do
 						then listResult ++ [splitOn "jk" (head list) ]
 						else leerTuplas (tail list) (listResult ++ [splitOn "jk" (head list)])
 
--- Recibe un String y una lista de delimitadores verifica si en ese String hay caracteres especiales 
--- y devuelve una lista de String con los delimitadores separados 
-buscarCaracter :: String -> [String] -> [String] -> [String]
-buscarCaracter _ [] [] = []
-buscarCaracter cadena listaChar listaNueva = do
-										let in1 = (index1 (head listaChar) cadena) -1
-										let in2 = (index1 (head listaChar) cadena) + 1-- listaChar>1
-										if (isInfixOf (head listaChar) cadena) == False
-												then if (length(tail listaChar)== 0)
-												 		then [cadena] ++ listaNueva
-												 		else buscarCaracter cadena (tail listaChar) listaNueva 
-												else if (length(tail listaChar)== 0)
-														then [[cadena !! x | x<-[0..in1]++[in2..length(cadena)-1]]]++listaNueva++[head listaChar]
-														else do buscarCaracter [cadena !! x | x<-[0..in1]++[in2..length(cadena)-1]] listaChar (listaNueva++[head listaChar])
-
--- Funcion que recibe la lista String a la que se aplico split ´ ´ a la linea del archivo
--- tambien recibe la lista de delimitadores y retorna una lista nueva
-separaCaracter :: [String] ->  [String] -> [String] -> [String]
-separaCaracter [] [] [] = []
-separaCaracter listL listD l = if(length (tail listL)== 0) == False
-					then if(length(buscarCaracter (head listL) listD []) > 1) 
-							then separaCaracter (tail listL) listD  ( l++(buscarCaracter (head listL) listD []) )
-							else [head listL] ++ (separaCaracter (tail listL) listD l) 
-				 	else 
-				 		(buscarCaracter (head listL) listD l) 			 	 
-
-
 --Identifica las diferentes Palabras Reservadas y los diferentes Operadores
 identificadorPalabras :: [[String]]->[String]->[[String]]->IO()
 identificadorPalabras (list1:listTail) list2 (listAux:listTailAux) = do
@@ -138,13 +131,14 @@ identificadorPalabras (list1:listTail) list2 (listAux:listTailAux) = do
 																	else putStrLn $ "Identificador: "++show(head list2)
 															else if (elem (head list2) list1)
 																	then putStrLn $ show(tail list1)++" "++show(head list2)
-																	else identificadorPalabras listTail list2 (listAux:listTailAux)  --return ()
+																	else identificadorPalabras listTail list2 (listAux:listTailAux) 
 													else if( length(listTail) == 0 )
 															then if(elem (head list2) list1)
 																	then do putStrLn $ show(tail list1)++" "++show(head list1)
 																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux)
-																	else identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux) --putStrLn $ "Identificador: "++show(head list2)
+																	else do putStrLn $ "Identificador: "++show(head list2)
+																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux) 
 															else if (elem (head list2) list1)
 																	then do putStrLn $ show(tail list1)++" "++show(head list2)
 																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux)
-																	else identificadorPalabras listTail list2 (listAux:listTailAux) --return ()n
+																	else identificadorPalabras listTail list2 (listAux:listTailAux) 
