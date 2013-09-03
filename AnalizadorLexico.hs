@@ -90,3 +90,13 @@ buscarCaracter cadena listaChar listaNueva = do
 														then [[cadena !! x | x<-[0..in1]++[in2..length(cadena)-1]]]++listaNueva++[head listaChar]
 														else do buscarCaracter [cadena !! x | x<-[0..in1]++[in2..length(cadena)-1]] listaChar (listaNueva++[head listaChar])
 
+-- Funcion que recibe la lista String a la que se aplico split ´ ´ a la linea del archivo
+-- tambien recibe la lista de delimitadores y retorna una lista nueva
+separaCaracter :: [String] ->  [String] -> [String] -> [String]
+separaCaracter [] [] [] = []
+separaCaracter listL listD l = if(length (tail listL)== 0) == False
+					then if(length(buscarCaracter (head listL) listD []) > 1) 
+							then separaCaracter (tail listL) listD  ( l++(buscarCaracter (head listL) listD []) )
+							else [head listL] ++ (separaCaracter (tail listL) listD l) 
+				 	else 
+				 		(buscarCaracter (head listL) listD l) 			 	 
