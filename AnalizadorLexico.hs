@@ -5,59 +5,42 @@
 --	   Keyla Figueroa
 
 import Data.Char
-import Data.Char(toUpper)
 import Data.List
 import System.IO
 import Data.List.Split
 
 --Elimina los comentarios
-comments :: String -> String
-comments  string = do 	
-					let 	finalPoint = (index1 "/*" string)
-					let 	initialPoint = (index1 "*/" string) + 2	
-					if((isSubstring "/*" string) && (isSubstring "*/" string)) == False 
-						then string
-						else comments[string !! x | x<-[0..finalPoint - 1]++[initialPoint..(length string) - 1]]
+comentarios :: String -> String
+comentarios  cadena = do 	
+					let 	puntoFinal = (indice1 "/*" cadena)
+					let 	puntoInicial = (indice1 "*/" cadena) + 2	
+					if((isInfixOf "/*" cadena) && (isInfixOf "*/" cadena)) == False 
+						then cadena
+						else comentarios [cadena !! x | x<-[0..puntoFinal - 1]++[puntoInicial..(length cadena) - 1]]
+
 --Elimina las cabecera
 cabecera :: String -> String
-cabecera  string = do 	
-					let 	finalPoint = (index1 "#" string)
-					let 	initialPoint = (index1 ">" string) + 2	
-					if((isSubstring "#" string) && (isSubstring ">" string)) == False 
-						then string
-						else cabecera[string !! x | x<-[0..finalPoint - 1]++[initialPoint..(length string) - 1]]
+cabecera  cadena = do 	
+					let 	puntoFinal = (indice1 "#" cadena)
+					let 	puntoInicial = (indice1 ">" cadena) + 2	
+					if((isInfixOf "#" cadena) && (isInfixOf ">" cadena)) == False 
+						then cadena
+						else cabecera [cadena !! x | x<-[0..puntoFinal - 1]++[puntoInicial..(length cadena) - 1]]
 
-index1 :: String -> String -> Int
-index1 substring string
-	| (null substring || null string) == True = length string
-	| (isSubstring substring string) == False = length string
-index1 substring string = index2 substring string ((length string) - (length substring))
+--Funcion que obtiene la posicion del caracter en otra cadena
+indice1 :: String -> String -> Int
+indice1 subCadena cadena = do
+							if (null subCadena || null cadena) == True
+								then length cadena
+								else if (isInfixOf subCadena cadena) == False
+										then length cadena
+										else indice2 subCadena cadena ((length cadena) - (length subCadena))
 
-index2 :: String -> String -> Int -> Int
-index2 substring string index
-	| (isSubstring substring (init string)) == False = index
-index2 substring string index = index2 substring (init string) (index - 1)
-
-isSubstring:: String -> String -> Bool
-isSubstring substring string = isInfixOf substring string
-
---Funcion que toma la una lista de caracteres y hace los TOKENS
-tokensCaracter :: [Char]->String->String
-tokensCaracter (x:xs) cadena = if length (x:xs) == 1
-						then concatenaLista (splitCadena cadena x)
-						else tokensCaracter xs (concatenaLista (splitCadena cadena x))
-
---Funcion que concatena una Lista		
-concatenaLista :: [String]->String
-concatenaLista (x:xs) = if length(x:xs) == 1
-					then x
-					else x++concatenaLista(xs)
-
---Funcion que parte una cadena en slpit
-splitCadena :: String -> Char -> [String]
-splitCadena str delim = let (start, end) = break (== delim) str
-		    in start : if null end then [] 
-					else splitCadena (tail end) delim
+indice2 :: String -> String -> Int -> Int
+indice2 subCadena cadena indice = do
+								if (isInfixOf subCadena (init cadena)) == False
+									then indice
+									else indice2 subCadena (init cadena) (indice - 1)
 
 main::IO()
 main = do
@@ -70,10 +53,9 @@ main = do
 	
 		putStrLn "\n\t\t\t\tArchivo Codec.c Abierto"
 		eliminaComentariosCabeceras "code.c"
-		codigo <- readFile "codeComentario.c"
-
-		menuPrincipal (words codigo)
-		--hClose codigo
+		codigoNuevo <- readFile "codeComentario.c"
+		menuPrincipal (words codigoNuevo)
+		putStrLn "Analizador Lexico Guardado en analizador.txt"
 
 --Funcion Principal
 menuPrincipal [] = return()
@@ -82,9 +64,9 @@ menuPrincipal manejable = do
 
 --Funcion que lee el archivo y elimina los comentarios de lineas
 --y los comentarios multilineas y las cabeceras		
-eliminaComentariosCabeceras arch = do
-						codigo <- readFile arch
-						let rComments = comments (codigo)
+eliminaComentariosCabeceras ruta = do
+						codigoC <- readFile ruta
+						let rComments = comentarios (codigoC)
 						let rCabecera = cabecera (rComments)
 						writeFile "codeComentario.c" rCabecera
 
@@ -93,7 +75,7 @@ analizador:: [String] -> IO()
 analizador (x:xs) = do
 					listaPalabras <- openFile "palabraReservadas.c" ReadMode
 					palReser <- hGetLine listaPalabras
-					let listaSplitArchivo = split (oneOf "(,;<>{[+-?=!#:\\\"%&*)}]") x
+					let listaSplitArchivo = split (oneOf "()<>{}[]+-*/=!?#:%&,;\\\"") x
 					let listaN1 =borrarEspacios listaSplitArchivo []
 					let pal = splitOn " " palReser
 					let listaTupla = leerTuplas pal []
@@ -101,7 +83,6 @@ analizador (x:xs) = do
 					if (length(xs)==0)
 						then return()
 						else analizador xs
-
 
 --Borra elementos vacios de la lista de cada linea leida del archivo
 borrarEspacios :: [String] -> [String] -> [String]
@@ -119,10 +100,10 @@ borrarEspacios lista listaNueva = do
 --y devuelve la lista con sus lexemas y tokens separados
 leerTuplas :: [String] -> [[String]] -> [[String]]
 leerTuplas [] [[]]= [[]]
-leerTuplas list listResult = do
-					if (length (tail list)== 0)
-						then listResult ++ [splitOn "jk" (head list) ]
-						else leerTuplas (tail list) (listResult ++ [splitOn "jk" (head list)])
+leerTuplas lista listaResultante = do
+					if (length (tail lista)== 0)
+						then listaResultante ++ [splitOn "jk" (head lista) ]
+						else leerTuplas (tail lista) (listaResultante ++ [splitOn "jk" (head lista)])
 
 --Identifica las diferentes Palabras Reservadas y los diferentes Operadores
 identificadorPalabras :: [[String]]->[String]->[[String]]->IO()
@@ -131,23 +112,23 @@ identificadorPalabras (list1:listTail) list2 (listAux:listTailAux) = do
 													then if( length(listTail) == 0 )
 															then if(elem (head list2) list1)
 																	then do appendFile "analizador.txt" (show(tail list1)++"  =>  "++show(head list1)++ "\n")
-																		putStrLn $ show(tail list1)++" "++show(head list1)
+																		--putStrLn $ show(tail list1)++" "++show(head list1)
 																	else do appendFile "analizador.txt" ("Identificador   =>   "++show(head list2)++ "\n")
-																		putStrLn $ "Identificador: "++show(head list2)
+																		--putStrLn $ "Identificador: "++show(head list2)
 															else if (elem (head list2) list1)
 																	then do appendFile "analizador.txt" (show(tail list1)++"  =>  "++show(head list2)++ "\n")
-																		putStrLn $ show(tail list1)++" "++show(head list2)
+																		--putStrLn $ show(tail list1)++" "++show(head list2)
 																	else identificadorPalabras listTail list2 (listAux:listTailAux) 
 													else if( length(listTail) == 0 )
 															then if(elem (head list2) list1)
 																	then do appendFile "analizador.txt" (show(tail list1)++"  =>  "++show(head list1)++ "\n")
-																		putStrLn $ show(tail list1)++" "++show(head list1)
+																		--putStrLn $ show(tail list1)++" "++show(head list1)
 																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux)
 																	else do appendFile "analizador.txt" ("Identificador   =>   "++show(head list2)++ "\n") 
-																		putStrLn $ "Identificador: "++show(head list2)
+																		--putStrLn $ "Identificador: "++show(head list2)
 																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux) 
 															else if (elem (head list2) list1)
 																	then do appendFile "analizador.txt" (show(tail list1)++"  =>  "++show(head list2)++ "\n") 
-																		putStrLn $ show(tail list1)++" "++show(head list2)
+																		--putStrLn $ show(tail list1)++" "++show(head list2)
 																		identificadorPalabras (listAux:listTailAux) (tail list2) (listAux:listTailAux)
 																	else identificadorPalabras listTail list2 (listAux:listTailAux) 
